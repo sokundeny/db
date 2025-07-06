@@ -198,6 +198,7 @@ export const createUser = async (req,res)=>{
  */
 export const assignRole = async (req, res) => {
   try {
+    
     const { name, role, is_admin_option } = req.body;
 
     if (!name || !role) {
