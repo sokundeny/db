@@ -19,7 +19,7 @@
 | 4         | Software never reviewed                    | 0.01827650            | N/A         |
 | 5         | Total revenue per software                 | 0.18746800            | N/A        |
 | 6         | Customers spending > $100                  | 0.18746800            | N/A        |
-| 7         | Most recent review per software            | N/A           | 1.4         |
+| 7         | Most recent review per software            | N/A           | N/A        |
 | 8         | Developers with > 2 software products      | 0.05372300             |N/A       |
 | 9         | Average rating per category                | 3.89167775         | N/A          |
 | 10        | Customers and software reviewed            | 0.03432375             |N/A        |
