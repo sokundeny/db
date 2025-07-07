@@ -13,10 +13,10 @@
 
 | Query No. | Description                                | without index (sec)| with index (sec) |
 |-----------|--------------------------------------------|------------------|-------------|
-| 1         | List software with developer & category    | 0.33070850             |N/A        |
-| 2         | Top 3 highest-rated software               | 2.53213975            | N/A        |
-| 3         | Transactions by specific customer          | 0.00816775            | N/A        |
-| 4         | Software never reviewed                    | 0.01827650            | N/A         |
+| 1         | List software with developer & category    | 0.33070850             |0.03140200        |
+| 2         | Top 3 highest-rated software               | 2.53213975            | 1.20761700        |
+| 3         | Transactions by specific customer          | 0.00816775            | 0.00164225        |
+| 4         | Software never reviewed                    | 0.01827650            | 0.00622725       |
 | 5         | Total revenue per software                 | 0.18746800            | N/A        |
 | 6         | Customers spending > $100                  | 0.18746800            | N/A        |
 | 7         | Most recent review per software            | N/A           | N/A        |
