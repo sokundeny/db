@@ -8,11 +8,8 @@ fake = Faker()
 # DATABASE CONNECTION DETAIL
 DB_HOST="localhost"
 DB_USER="root"
-DB_PASSWORD=""
+DB_PASSWORD="Denys3npai@"
 DB_NAME="sms"
-
-with open('../note.txt', 'r') as file:
-    DB_PASSWORD = file.read()
 
 def generate_data():
     comment = fake.paragraph(nb_sentences=3)
@@ -52,8 +49,8 @@ connection.commit()
 
 # Generate and insert data
 print('Start inserting ...')
-insertion_amount = 10
-num_records = 10
+insertion_amount = 10000
+num_records = 100
 i = 0
 
 for k in range(insertion_amount):
