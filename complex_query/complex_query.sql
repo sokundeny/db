@@ -1,4 +1,7 @@
 -- Query 1: List all software along with their developer name and category name
+
+set profiling=1;
+show profiles;
 SELECT 
     s.software_id,
     s.name AS software_name,
@@ -10,6 +13,11 @@ JOIN
     Developer d ON s.developer_id = d.developer_id
 JOIN 
     Categories c ON s.category_id = c.category_id;
+
+-- ✅ Indexes to optimize Query 1 (JOINs on Developer and Categories)
+CREATE INDEX idx_software_developer_id ON Software(developer_id);
+CREATE INDEX idx_software_category_id ON Software(category_id);
+
 
 -- Query 2: Find the top 3 highest-rated software based on average rating
 SELECT 
@@ -25,6 +33,9 @@ ORDER BY
     avg_rating DESC
 LIMIT 3;
 
+-- ✅ Indexes to optimize Query 2 (JOIN on Reviews, GROUP BY, and ORDER BY AVG)
+create INDEX idx_reviews_software_id ON Reviews(software_id);
+
 -- Query 3: Retrieve all transactions made by a specific customer (by email)
 SELECT 
     t.transaction_id,
@@ -39,6 +50,12 @@ JOIN
     Software s ON t.software_id = s.software_id
 WHERE 
     c.email = 'customer@example.com';
+    
+ -- ✅ Index to optimize Query 3 (WHERE by customer email, JOINs)   
+CREATE INDEX idx_customers_email ON Customers(email);
+CREATE INDEX idx_transactions_customer_id ON Transactions(customer_id);
+CREATE INDEX idx_transactions_software_id ON Transactions(software_id);
+
 
 -- Query 4: Find software that has never been reviewed
 SELECT 
