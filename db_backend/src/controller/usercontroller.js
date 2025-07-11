@@ -46,35 +46,46 @@ export const getAllUser = async (req, res) => {
     for (const { user } of users) {
       try {
         const [grants] = await pool.query(`SHOW GRANTS FOR \`${user}\`@\`localhost\``);
-        let assignedRole = null;
-        let isAdminOption = false;
+        const roles = [];
 
         for (const grantObj of grants) {
           const grantStr = Object.values(grantObj)[0];
 
-          // Match GRANT `role`@`%` TO 'user'@'host'
-          const match = grantStr.match(/GRANT [`']?(\w+)[`']?@[`']?.*?[`']? TO/i);
-          if (match) {
-            assignedRole=match[1].toUpperCase(); // e.g. DEVELOPER
-          }
+          // Match roles list in the GRANT statement, e.g.:
+          // GRANT `kik`@`%`,`kiki`@`%` TO `user`@`host` WITH ADMIN OPTION
+          const rolesMatch = grantStr.match(/GRANT\s+((?:`[^`]+`@\`[^`]+\`,?\s*)+)TO/i);
 
-          // Check if WITH ADMIN OPTION is present
-          if (/WITH ADMIN OPTION/i.test(grantStr)) {
-            isAdminOption = true;
+          if (rolesMatch) {
+            const rolesPart = rolesMatch[1]; // string of roles like `kik`@`%`,`kiki`@`%`
+
+            // Split roles by comma, trimming spaces
+            const roleEntries = rolesPart.split(',').map(r => r.trim());
+
+            // Check if WITH ADMIN OPTION is present in this grant line
+            const isAdmin = /WITH ADMIN OPTION/i.test(grantStr);
+
+            for (const roleEntry of roleEntries) {
+              // Extract role name inside backticks before the @
+              const roleNameMatch = roleEntry.match(/`([^`]+)`@\`[^`]+\`/);
+              if (roleNameMatch) {
+                roles.push({
+                  role: roleNameMatch[1].toUpperCase(),
+                  is_admin_option: isAdmin
+                });
+              }
+            }
           }
         }
 
         results.push({
           user,
-          role: assignedRole || 'NO ROLE',
-          is_admin_option: isAdminOption
+          roles: roles.length > 0 ? roles : [{ role: 'NO ROLE', is_admin_option: false }]
         });
 
       } catch (err) {
         results.push({
           user,
-          role: `ERROR: ${err.message}`,
-          is_admin_option: false
+          roles: [{ role: `ERROR: ${err.message}`, is_admin_option: false }]
         });
       }
     }
@@ -85,6 +96,7 @@ export const getAllUser = async (req, res) => {
     res.status(500).json({ message: "Internal server error" });
   }
 };
+
 
 /**
  * @swagger
@@ -212,7 +224,6 @@ export const assignRole = async (req, res) => {
     }
 
     await pool.query(sql);
-    await pool.query(`set default role ${role} to '${name}'@'localhost'`)
 
     res.status(200).json({
       message: `Role '${role}' granted to user '${name}'${is_admin_option ? " with ADMIN OPTION" : ""}`
@@ -338,13 +349,39 @@ export const removeRole = async (req, res) => {
     // Revoke the role from the user
     await pool.query(`REVOKE ${role} FROM \`${name}\`@'localhost'`);
 
-    // Set default role to NONE
-    await pool.query(`SET DEFAULT ROLE NONE TO \`${name}\`@'localhost'`);
 
-    res.status(200).json({ message: `Role '${role}' revoked and default role set to NONE for '${name}'` });
+    res.status(200).json({ message: `Role '${role}' revoked  from '${name}'` });
 
   } catch (error) {
     console.error("Error in removeRole:", error);
     res.status(500).json({ message: "Something went wrong", error: error.message });
   }
 };
+
+export const updateUser = async (req, res) => {
+  try {
+    const { name, newPassword, newName } = req.body;
+
+    if (!name) {
+      return res.status(400).json({ message: "Missing original username" });
+    }
+
+    // Rename user
+    if (newName && newName !== name) {
+      await pool.query(`RENAME USER \`${name}\`@'localhost' TO \`${newName}\`@'localhost'`);
+    }
+
+    // Change password
+    if (newPassword) {
+      const targetUser = newName || name; // Use updated name if it was changed
+      await pool.query(`ALTER USER \`${targetUser}\`@'localhost' IDENTIFIED BY ?`, [String(newPassword)]);
+    }
+
+    res.status(200).json({ message: "User updated successfully" });
+
+  } catch (error) {
+    console.error("Error in updateUser:", error);
+    res.status(500).json({ message: "Something went wrong", error: error.message });
+  }
+};
+

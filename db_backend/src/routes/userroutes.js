@@ -1,5 +1,5 @@
 import express from 'express'
-import { getAllUser, createUser, assignRole, deleteUser, removeRole } from '../controller/usercontroller.js'
+import { getAllUser, createUser, assignRole, deleteUser, removeRole, updateUser } from '../controller/usercontroller.js'
 
 const userRouter = express.Router()
 
@@ -10,6 +10,8 @@ userRouter.get('/health', (req, res) => {
 
 userRouter.post('/', createUser)
 userRouter.post('/role', assignRole)
+
+userRouter.put('/',updateUser)
 
 userRouter.delete('/', deleteUser)
 userRouter.delete('/role', removeRole)

@@ -30,13 +30,20 @@ export const removeUser = async (user) => {
   return response.data;
 };
 
-export const assignRole = async ( name, role ) => {
-    console.log("Add User: " + name)
-    console.log("Add Role: " + role)
+export const assignRole = async (name, role, is_admin_option = false) => {
     const response = await axios.post(`${API_BASE_URL}/user/role`, {
-        name, 
+        name,
         role,
-        is_admin_option: false
+        is_admin_option, // ✅ required
+    });
+    return response.data;
+};
+
+export const updateUser = async ({ name, newName, newPassword }) => {
+    const response = await axios.put(`${API_BASE_URL}/user`, {
+        name,
+        newName,
+        newPassword
     });
     return response.data;
 };

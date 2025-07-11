@@ -1,71 +1,103 @@
 import { useEffect, useState } from "react";
 
 const UserModal = ({ user, roles, isOpen, onClose, onSaveRoles, onDelete }) => {
+    const [localRoles, setLocalRoles] = useState([]);
 
-    const [ localRoles, setLocalRoles ] = useState([]);
     useEffect(() => {
-        setLocalRoles([user?.role] || []); 
+        // If user.roles is array of { role, is_admin_option }
+        setLocalRoles(user?.roles || []);
     }, [user]);
 
     if (!isOpen) return null;
 
-    const toggleRole = (role) => {
-        console.log(localRoles)
-        setLocalRoles(prev => 
-            prev.includes(role) ? prev.filter(r => r !== role) : [...prev, role]
-        )
-    }
+    // Toggle role selection
+    const toggleRole = (roleName) => {
+        setLocalRoles((prev) => {
+            const found = prev.find(r => r.role === roleName);
+            if (found) {
+                return prev.filter(r => r.role !== roleName);
+            } else {
+                return [...prev, { role: roleName, is_admin_option: false }];
+            }
+        });
+    };
+
+    // Toggle admin option for a role
+    const toggleAdminOption = (roleName) => {
+        setLocalRoles((prev) =>
+            prev.map(r =>
+                r.role === roleName ? { ...r, is_admin_option: !r.is_admin_option } : r
+            )
+        );
+    };
 
     const handleSave = () => {
-        const original = new Set([user?.role] || []);
-        const updated = new Set(localRoles);
+        const original = new Map((user?.roles || []).map(r => [r.role, r.is_admin_option]));
+        const updated = new Map(localRoles.map(r => [r.role, r.is_admin_option]));
 
-        const toAdd = [...updated].filter((r) => !original.has(r))
-        const toRemove = [...original].filter((r) => !updated.has(r))
+        const toAdd = [];
+        const toRemove = [];
 
-        onSaveRoles(user, toAdd, toRemove);
+        for (const [role, isAdmin] of updated) {
+            if (!original.has(role) || original.get(role) !== isAdmin) {
+                toAdd.push({ role, is_admin_option: isAdmin });
+            }
+        }
+
+        for (const [role] of original) {
+            if (!updated.has(role)) {
+                toRemove.push(role);
+            }
+        }
+
+        onSaveRoles(user, toAdd, toRemove); // Make sure this gets called!
         onClose();
-    }
+    };
 
-    return(
+
+    return (
         <div className="fixed inset-0 z-50 flex items-center justify-center text-black bg-black bg-opacity-30">
             <div className="bg-white w-full max-w-md p-6 rounded shadow-lg relative">
                 <h2 className="text-xl font-semibold mb-4">
                     Manage User
-                    
-                    <input type="text" 
+                    <input
+                        type="text"
                         className="w-full mt-4 p-2 border border-gray-300 rounded font-normal text-base"
                         value={user.user}
+                        readOnly
                     />
                 </h2>
-                <h2>Roles</h2>
+                <h2 className="mb-2 font-medium">Roles</h2>
 
-                <div className="space-y-2 mb-6">
-                    {roles.map(role => (
-                        <label key={role.role} className="flex items-center gap-2">
-                            <input
-                                type="checkbox"
-                                checked={localRoles.includes(role.role.toUpperCase())}
-                                onChange={() => toggleRole(role.role.toUpperCase())}
-                            />
-                            <span>{role.role}</span>
-                        </label>
-                    ))}
+                <div className="space-y-3 mb-6">
+                    {roles.map(({ role }) => {
+                        const isChecked = localRoles.some(r => r.role === role.toUpperCase());
+                        const isAdmin = localRoles.find(r => r.role === role.toUpperCase())?.is_admin_option || false;
+
+                        return (
+                            <div key={role} className="flex flex-col gap-1 border rounded p-2">
+                                <label className="flex items-center gap-2">
+                                    <input
+                                        type="checkbox"
+                                        checked={isChecked}
+                                        onChange={() => toggleRole(role.toUpperCase())}
+                                    />
+                                    <span>{role.toUpperCase()}</span>
+                                </label>
+                                {isChecked && (
+                                    <label className="flex items-center gap-2 text-sm text-blue-700 pl-6">
+                                        <input
+                                            type="checkbox"
+                                            checked={isAdmin}
+                                            onChange={() => toggleAdminOption(role.toUpperCase())}
+                                        />
+                                        <span>Admin Option</span>
+                                    </label>
+                                )}
+                            </div>
+                        );
+                    })}
                 </div>
-                {/* <div className="mb-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Select Role:
-                    </label>
-                    <select
-                        value={selectedRole}
-                        onChange={(e) => setSelectedRole(e.target.value)}
-                        className="w-full p-2 border border-gray-300 rounded"
-                    >
-                        <option value="viewer">Viewer</option>
-                        <option value="editor">Editor</option>
-                        <option value="admin">Admin</option>
-                    </select>
-                </div> */}
 
                 <div className="flex justify-between items-center space-x-2 mt-6">
                     <button
@@ -81,7 +113,7 @@ const UserModal = ({ user, roles, isOpen, onClose, onSaveRoles, onDelete }) => {
                         Delete Role
                     </button>
                     <button
-                        onClick={() => handleSave()}
+                        onClick={handleSave}
                         className="px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
                     >
                         Save
@@ -89,7 +121,7 @@ const UserModal = ({ user, roles, isOpen, onClose, onSaveRoles, onDelete }) => {
                 </div>
             </div>
         </div>
-    )
-}
+    );
+};
 
-export default UserModal
+export default UserModal;
