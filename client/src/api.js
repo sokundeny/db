@@ -7,10 +7,28 @@ export const pingUser = async () => {
     return response.data;
 }
 
+export const createUser = async ( user ) => {
+    //   const response = await axios.post(`${API_BASE_URL}/articles`, article);
+    const response = await axios.post(`${API_BASE_URL}/user`, {
+        name: user.name,
+        password: user.password
+    })
+    return response.data;
+};
+
 export const getUser = async () => {
     const response = await axios.get(`${API_BASE_URL}/user`);
     return response.data;
 }
+
+export const removeUser = async (user) => {
+    const response = await axios.delete(`${API_BASE_URL}/user`, {
+        data: {
+            name: user.user
+        }
+    });
+  return response.data;
+};
 
 export const assignRole = async ( name, role ) => {
     console.log("Add User: " + name)
@@ -40,9 +58,23 @@ export const getRole = async () => {
     return response.data;
 }
 
+export const createRole = async ( role ) => {
+    const response = await axios.post(`${API_BASE_URL}/role`, {
+        role: role.role,
+        permissions: role.localPerms,
+        table: role.localTables
+    })
+    return response.data;
+};
 
-
-
+export const deleteRole = async () => {
+    const response = await axios.delete(`${API_BASE_URL}/role`, {
+        data: {
+            role: ""
+        }
+    });
+  return response.data;
+};
 
 // export const updateArticle = async (id, updatedData) => {
 //   const response = await axios.put(`${API_BASE_URL}/articles/${id}`, updatedData);

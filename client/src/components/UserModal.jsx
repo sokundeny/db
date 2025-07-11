@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-const UserModal = ({ user, roles, isOpen, onClose, onSaveRoles, onRevokeRole }) => {
+const UserModal = ({ user, roles, isOpen, onClose, onSaveRoles, onDelete }) => {
 
     const [ localRoles, setLocalRoles ] = useState([]);
     useEffect(() => {
@@ -75,10 +75,10 @@ const UserModal = ({ user, roles, isOpen, onClose, onSaveRoles, onRevokeRole }) 
                         Cancel
                     </button>
                     <button
-                        onClick={() => onRevokeRole(user)}
+                        onClick={() => onDelete(user)}
                         className="px-4 py-2 text-sm bg-red-600 text-white rounded hover:bg-red-700"
                     >
-                        Delete User
+                        Delete Role
                     </button>
                     <button
                         onClick={() => handleSave()}

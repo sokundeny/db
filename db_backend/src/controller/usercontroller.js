@@ -266,6 +266,7 @@ export const assignRole = async (req, res) => {
  */
 export const deleteUser = async (req, res) => {
   try {
+    console.log(req.body)
     const { name } = req.body;
 
     if (!name) {
