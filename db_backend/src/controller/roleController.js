@@ -396,3 +396,33 @@ export const revokeRole = async (req, res) => {
     });
   }
 };
+
+export const updateRole = async (req, res) => {
+  try {
+    const { name, newName } = req.body;
+    if (!name || !newName) {
+      return res.status(400).json({ message: "Missing role name(s)" });
+    }
+
+    // 1. Create new role
+    await pool.query(`CREATE ROLE \`${newName}\``);
+
+    // 2. Copy privileges from old role to new role
+    // This is tricky and needs querying SHOW GRANTS and reapplying them
+    // For example:
+    const [grants] = await pool.query(`SHOW GRANTS FOR \`${name}\``);
+    for (const row of grants) {
+      const grant = Object.values(row)[0]
+        .replace(new RegExp(`\\\`${name}\\\``, 'g'), `\`${newName}\``);
+      await pool.query(grant);
+    }
+
+    // 3. Drop old role
+    await pool.query(`DROP ROLE \`${name}\``);
+
+    res.status(200).json({ message: "Role renamed successfully" });
+  } catch (error) {
+    console.error("Error in updateRole:", error);
+    res.status(500).json({ message: "Something went wrong", error: error.message });
+  }
+};
