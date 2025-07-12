@@ -98,12 +98,23 @@ const RoleModal = ({ role, isOpened, onClosed, onDelete, onSave }) => {
                 <h3>
                     Privilige
                 </h3>
-                {role.tables.map((permission)=>(
-                    <div className="flex justify-between items-center">
-                        <div className="">{permission.permissions.join(',')}</div>
-                        <div className="">{permission.table}</div>
+                {role.tables.map((item, idx) => {
+                const match = item.table.match(/`[^`]+`\.`([^`]+)`/);
+                const tableName = match ? match[1] : item.table;
+
+                return (
+                    <div key={idx} className="flex justify-between items-center text-sm border-b py-1">
+                    <div className="">{item.permissions.join(", ")}</div>
+                    <div className="">{tableName}</div>
+                    <button
+                        className="text-xs text-red-600 hover:underline"
+                        onClick={() => {}}
+                    >
+                        Delete
+                    </button>
                     </div>
-                ))}
+                );
+                })}
                 <div>
                     <h1 className="my-2 font-semibold">Tables:</h1>
                     {tables.map(table => (
