@@ -108,10 +108,10 @@ export const revokePrivilege = async ({ role, permissions, tables }) => {
   });
 };
 
-export const updateRole = async ({ name, newName}) => {
-    const response = await axios.put(`${API_BASE_URL}/user`, {
-        name,
-        newName
+export const updateRole = async ({ originalRole, newRole }) => {
+    const response = await axios.put(`${API_BASE_URL}/role`, {
+        name:originalRole,
+        newName:newRole
     });
     return response.data;
 };

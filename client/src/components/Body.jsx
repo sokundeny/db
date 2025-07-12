@@ -1,10 +1,11 @@
-import { pingUser, getUser, createUser, removeUser, assignRole, removeRole, getRole, createRole, updateUser, deleteRole } from "../api";
+import { pingUser, getUser, createUser, removeUser, assignRole, removeRole, getRole, createRole, updateUser, deleteRole ,updateRole} from "../api";
 import { useEffect, useState } from "react";
 import UserModal from "./UserModal";
 import RoleModal from "./RoleModal";
 import NewUserModal from "./NewUserModal";
 import NewRoleModal from "./NewRoleModal";
 import UpdateUserModal from "./UpdateModel"; // ✅ NEW IMPORT
+import UpdateRoleModal from "./UpdateRoleModel";
 
 const Body = () => {
     const [navItems] = useState(["User", "Role"]);
@@ -16,6 +17,8 @@ const Body = () => {
     const [newUserModal, setNewUserModal] = useState(false);
     const [newRoleModal, setNewRoleModal] = useState(false);
     const [updateModalOpen, setUpdateModalOpen] = useState(false); // ✅ NEW
+    const [updateRoleOpen,setUpdateRoleOpen]=useState(false)
+    const [roleToUpdate, setRoleToUpdate] = useState(null);
 
     const getUsers = async () => {
         try {
@@ -50,6 +53,10 @@ const Body = () => {
         window.location.reload();
     };
 
+    const handleUpdateRoleOpen = (role) => {
+    setRoleToUpdate(role);
+    setUpdateRoleOpen(true);
+    };
     const handleDeleteUser = async (user) => {
         try {
             await removeUser(user);
@@ -137,6 +144,16 @@ const Body = () => {
         window.location.reload();
         // Add deletion logic
     };
+    const handleUpdateRole = async (originalRole, newRoleName) => {
+    try {
+      await updateRole({ originalRole, newRole: newRoleName });
+    } catch (error) {
+      console.error("Update role error:", error);
+    }
+    setUpdateRoleOpen(false);
+    setRoleToUpdate(null);
+    window.location.reload();
+  };
 
     return (
         <div className="flex flex-col gap-4 h-full py-4">
@@ -204,29 +221,36 @@ const Body = () => {
                         </tbody>
                     </table>
                 ) : (
-                    <table className="min-w-full bg-white shadow-sm rounded-lg">
-                        <thead className="bg-gray-100">
-                            <tr>
-                                <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Role</th>
-                                <th className="px-6 py-3 text-right text-sm font-medium text-gray-700">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {roles.map((role, idx) => (
-                                <tr key={idx} className="border-t border-gray-200 hover:bg-gray-50">
-                                    <td className="px-6 py-4 text-sm text-gray-600">{role.role}</td>
-                                    <td className="px-6 py-4 text-sm text-gray-600 flex justify-end">
-                                        <button
-                                            className="px-3 py-1 text-sm text-white bg-blue-600 rounded hover:bg-blue-700"
-                                            onClick={() => handleManageRole(role)}
-                                        >
-                                            Manage
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
+                    <table className="min-w-full bg-white shadow-sm rounded-lg table-auto">
+                    <thead className="bg-gray-100">
+                        <tr>
+                        <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Role</th>
+                        <th className="px-6 py-3 text-right text-sm font-medium text-gray-700">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {roles.map((role, idx) => (
+                        <tr key={idx} className="border-t border-gray-200 hover:bg-gray-50">
+                            <td className="px-6 py-4 text-sm text-gray-600">{role.role}</td>
+                            <td className="px-6 py-4 text-sm text-gray-600 text-right space-x-2">
+                            <button
+                                className="px-3 py-1 text-sm text-white bg-blue-600 rounded hover:bg-blue-700"
+                                onClick={() => handleUpdateRoleOpen(role)}
+                            >
+                                Update Role
+                            </button>
+                            <button
+                                className="px-3 py-1 text-sm text-white bg-blue-600 rounded hover:bg-blue-700"
+                                onClick={() => handleManageRole(role)}
+                            >
+                                Manage
+                            </button>
+                            </td>
+                        </tr>
+                        ))}
+                    </tbody>
                     </table>
+
                 )}
             </div>
 
@@ -238,6 +262,15 @@ const Body = () => {
                 onClose={handleCloseModal}
                 onSaveRoles={handleSaveRoles}
                 onDelete={handleDeleteUser}
+            />
+            <UpdateRoleModal
+                isOpen={updateRoleOpen}
+                role={roleToUpdate}
+                onClose={() => {
+                setUpdateRoleOpen(false);
+                setRoleToUpdate(null);
+                }}
+                onUpdate={handleUpdateRole}
             />
 
             <UpdateUserModal
