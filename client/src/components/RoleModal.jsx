@@ -20,8 +20,8 @@ const RoleModal = ({ role, isOpened, onClosed, onDelete, onSave }) => {
             return match ? match[1] : item.table;
         });
 
-        setLocalTables(tableNames);
-        setOriginalTables(tableNames);
+        setLocalTables([]);
+        setOriginalTables([]);
 
         const allPerms = new Set();
         role.tables.forEach(item => {
@@ -29,8 +29,8 @@ const RoleModal = ({ role, isOpened, onClosed, onDelete, onSave }) => {
         });
 
         const uniquePerms = Array.from(allPerms);
-        setLocalPerms(uniquePerms);
-        setOriginalPerms(uniquePerms);
+        setLocalPerms([]);
+        setOriginalPerms([]);
 
         setHasInitialized(true);
     }, [role, hasInitialized]);
@@ -95,7 +95,15 @@ const RoleModal = ({ role, isOpened, onClosed, onDelete, onSave }) => {
                             readOnly
                     />
                 </h2>
-
+                <h3>
+                    Privilige
+                </h3>
+                {role.tables.map((permission)=>(
+                    <div className="flex justify-between items-center">
+                        <div className="">{permission.permissions.join(',')}</div>
+                        <div className="">{permission.table}</div>
+                    </div>
+                ))}
                 <div>
                     <h1 className="my-2 font-semibold">Tables:</h1>
                     {tables.map(table => (

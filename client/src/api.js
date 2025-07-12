@@ -69,18 +69,18 @@ export const createRole = async ( role ) => {
     const response = await axios.post(`${API_BASE_URL}/role`, {
         role: role.role,
         permissions: role.localPerms,
-        table: role.localTables
+        tables: role.localTables
     })
     return response.data;
 };
 
-export const deleteRole = async () => {
+export const deleteRole = async (roleName) => {
     const response = await axios.delete(`${API_BASE_URL}/role`, {
         data: {
-            role: ""
+            role: roleName
         }
     });
-  return response.data;
+    return response.data;
 };
 
 // export const updateArticle = async (id, updatedData) => {
@@ -92,3 +92,18 @@ export const deleteRole = async () => {
 //   const response = await axios.delete(`${API_BASE_URL}/articles/${id}`);
 //   return response.data;
 // };
+export const grantPrivilege = async ({ role, permissions, tables }) => {
+  return axios.post(`${API_BASE_URL}/role/grant`, {
+    role,
+    permissions,
+    table: tables,
+  });
+};
+
+export const revokePrivilege = async ({ role, permissions, tables }) => {
+  return axios.post(`${API_BASE_URL}/role/revoke`, {
+    role,
+    permissions,
+    table: tables,
+  });
+};

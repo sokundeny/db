@@ -1,4 +1,4 @@
-import { pingUser, getUser, createUser, removeUser, assignRole, removeRole, getRole, createRole, updateUser } from "../api";
+import { pingUser, getUser, createUser, removeUser, assignRole, removeRole, getRole, createRole, updateUser, deleteRole } from "../api";
 import { useEffect, useState } from "react";
 import UserModal from "./UserModal";
 import RoleModal from "./RoleModal";
@@ -128,7 +128,13 @@ const Body = () => {
     };
 
     const handleDeleteRole = async (role) => {
+        try {
+            await deleteRole(role.role)
+        } catch (error) {
+            console.log(error)
+        }
         handleCloseModal();
+        window.location.reload();
         // Add deletion logic
     };
 
