@@ -59,7 +59,6 @@ export const getAllUser = async (req, res) => {
         for (const grantObj of grants) {
           const grantStr = Object.values(grantObj)[0];
 
-          // Match: GRANT SELECT, INSERT ON `sms`.`students` TO ...
           const match = grantStr.match(/GRANT (.+?) ON (`?[\w*]+`?\.`?[\w*]+`?) /i);
           if (match) {
             const permsList = match[1]
