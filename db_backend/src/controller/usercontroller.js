@@ -10,11 +10,11 @@ import { pool } from "../configs/connectdb.js"
  * @swagger
  * /api/user:
  *   get:
- *     summary: Get all users with their assigned roles and admin option status
+ *     summary: Get all users with privileges on sms database
  *     tags: [User]
  *     responses:
  *       200:
- *         description: List of users with their roles and admin options
+ *         description: List of users with table privileges
  *         content:
  *           application/json:
  *             schema:
@@ -25,12 +25,19 @@ import { pool } from "../configs/connectdb.js"
  *                   user:
  *                     type: string
  *                     example: johndoe
- *                   role:
- *                     type: string
- *                     example: DEVELOPER
- *                   is_admin_option:
- *                     type: boolean
- *                     example: true
+ *                   tables:
+ *                     type: array
+ *                     items:
+ *                       type: object
+ *                       properties:
+ *                         table:
+ *                           type: string
+ *                           example: "`sms`.`students`"
+ *                         permissions:
+ *                           type: array
+ *                           items:
+ *                             type: string
+ *                             example: SELECT
  */
 export const getAllUser = async (req, res) => {
   try {
@@ -38,7 +45,7 @@ export const getAllUser = async (req, res) => {
       SELECT user FROM mysql.user
       WHERE user NOT IN ('mysql.sys', 'mysql.session', 'mysql.infoschema', 'root')
         AND user NOT LIKE 'mysql.%'
-        AND authentication_string != '' -- only real users, not roles
+        AND authentication_string != ''
     `);
 
     const results = [];
@@ -46,56 +53,58 @@ export const getAllUser = async (req, res) => {
     for (const { user } of users) {
       try {
         const [grants] = await pool.query(`SHOW GRANTS FOR \`${user}\`@\`localhost\``);
-        const roles = [];
+
+        const tablePermissionsMap = {};
 
         for (const grantObj of grants) {
           const grantStr = Object.values(grantObj)[0];
 
-          // Match roles list in the GRANT statement, e.g.:
-          // GRANT `kik`@`%`,`kiki`@`%` TO `user`@`host` WITH ADMIN OPTION
-          const rolesMatch = grantStr.match(/GRANT\s+((?:`[^`]+`@\`[^`]+\`,?\s*)+)TO/i);
+          // Match: GRANT SELECT, INSERT ON `sms`.`students` TO ...
+          const match = grantStr.match(/GRANT (.+?) ON (`?[\w*]+`?\.`?[\w*]+`?) /i);
+          if (match) {
+            const permsList = match[1]
+              .split(',')
+              .map(p => p.trim().toUpperCase())
+              .filter(p => p.length > 0);
 
-          if (rolesMatch) {
-            const rolesPart = rolesMatch[1]; // string of roles like `kik`@`%`,`kiki`@`%`
+            const tableName = match[2]; // like `sms`.`students`
 
-            // Split roles by comma, trimming spaces
-            const roleEntries = rolesPart.split(',').map(r => r.trim());
-
-            // Check if WITH ADMIN OPTION is present in this grant line
-            const isAdmin = /WITH ADMIN OPTION/i.test(grantStr);
-
-            for (const roleEntry of roleEntries) {
-              // Extract role name inside backticks before the @
-              const roleNameMatch = roleEntry.match(/`([^`]+)`@\`[^`]+\`/);
-              if (roleNameMatch) {
-                roles.push({
-                  role: roleNameMatch[1].toUpperCase(),
-                  is_admin_option: isAdmin
-                });
+            if (tableName.startsWith('`sms`.')) {
+              if (!tablePermissionsMap[tableName]) {
+                tablePermissionsMap[tableName] = new Set();
               }
+              permsList.forEach(p => tablePermissionsMap[tableName].add(p));
             }
           }
         }
 
+        if (Object.keys(tablePermissionsMap).length === 0) {
+          continue; // Skip users with no `sms` table privileges
+        }
+
+        const tables = Object.entries(tablePermissionsMap).map(([table, permsSet]) => ({
+          table,
+          permissions: [...permsSet]
+        }));
+
         results.push({
           user,
-          roles: roles.length > 0 ? roles : [{ role: 'NO ROLE', is_admin_option: false }]
+          tables
         });
 
-      } catch (err) {
-        results.push({
-          user,
-          roles: [{ role: `ERROR: ${err.message}`, is_admin_option: false }]
-        });
+      } catch {
+        continue; // skip user if error occurs
       }
     }
 
     res.status(200).json(results);
+
   } catch (error) {
-    console.error("Error fetching users and roles:", error);
+    console.error("Error fetching user privileges:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 };
+
 
 
 /**
