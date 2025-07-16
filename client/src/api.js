@@ -34,7 +34,7 @@ export const assignRole = async (name, role, is_admin_option = false) => {
     const response = await axios.post(`${API_BASE_URL}/user/role`, {
         name,
         role,
-        is_admin_option, // ✅ required
+        is_admin_option,
     });
     return response.data;
 };
@@ -69,7 +69,7 @@ export const createRole = async ( role ) => {
     const response = await axios.post(`${API_BASE_URL}/role`, {
         role: role.role,
         permissions: role.localPerms,
-        tables: role.localTables
+        table: role.localTables
     })
     return response.data;
 };
@@ -92,20 +92,25 @@ export const deleteRole = async (roleName) => {
 //   const response = await axios.delete(`${API_BASE_URL}/articles/${id}`);
 //   return response.data;
 // };
-export const grantPrivilege = async ({ role, permissions, tables }) => {
-  return axios.post(`${API_BASE_URL}/role/grant`, {
-    role,
-    permissions,
-    table: tables,
-  });
+export const grantPrivilege = async (role, permissions, tables) => {
+    const response = await axios.post(`${API_BASE_URL}/role/grant`, {
+        role,
+        permissions,
+        table: tables,
+    });
+
+    return response.data
 };
 
-export const revokePrivilege = async ({ role, permissions, tables }) => {
-  return axios.post(`${API_BASE_URL}/role/revoke`, {
-    role,
-    permissions,
-    table: tables,
-  });
+export const revokePrivilege = async (role, tables, permissions) => {
+    const response = await axios.delete(`${API_BASE_URL}/role/revoke`, {
+        data : {
+            role,
+            permissions,
+            table: tables
+        }
+    });
+    return response.data
 };
 
 export const updateRole = async ({ originalRole, newRole }) => {

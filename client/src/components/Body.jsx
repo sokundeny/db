@@ -1,11 +1,11 @@
-import { pingUser, getUser, createUser, removeUser, assignRole, removeRole, getRole, createRole, updateUser, deleteRole ,updateRole} from "../api";
+import { pingUser, getUser, createUser, removeUser, assignRole, removeRole, getRole, createRole, updateUser, deleteRole ,updateRole, grantPrivilege, revokePrivilege} from "../api";
 import { useEffect, useState } from "react";
 import UserModal from "./UserModal";
 import RoleModal from "./RoleModal";
 import NewUserModal from "./NewUserModal";
 import NewRoleModal from "./NewRoleModal";
-import UpdateUserModal from "./UpdateModel"; // ✅ NEW IMPORT
-import UpdateRoleModal from "./UpdateRoleModel";
+import UpdateUserModal from "./UpdateModel";
+// import UpdateRoleModal from "./UpdateRoleModel";
 
 const Body = () => {
     const [navItems] = useState(["User", "Role"]);
@@ -16,8 +16,8 @@ const Body = () => {
     const [selectedRole, setSelectedRole] = useState(null);
     const [newUserModal, setNewUserModal] = useState(false);
     const [newRoleModal, setNewRoleModal] = useState(false);
-    const [updateModalOpen, setUpdateModalOpen] = useState(false); // ✅ NEW
-    const [updateRoleOpen,setUpdateRoleOpen]=useState(false)
+    const [updateModalOpen, setUpdateModalOpen] = useState(false);
+    const [updateRoleOpen, setUpdateRoleOpen]=useState(false)
     const [roleToUpdate, setRoleToUpdate] = useState(null);
 
     const getUsers = async () => {
@@ -54,9 +54,10 @@ const Body = () => {
     };
 
     const handleUpdateRoleOpen = (role) => {
-    setRoleToUpdate(role);
-    setUpdateRoleOpen(true);
+        setRoleToUpdate(role);
+        setUpdateRoleOpen(true);
     };
+
     const handleDeleteUser = async (user) => {
         try {
             await removeUser(user);
@@ -109,14 +110,20 @@ const Body = () => {
         else if (selected === "Role") setNewRoleModal(true);
     };
 
-    const closeCreateModal = () => {
+    const closeCreateModal = async () => {
         if (selected === "User") setNewUserModal(false);
-        else if (selected === "Role") setNewRoleModal(false);
+        else if (selected === "Role") {
+            await getRoles()
+            setNewRoleModal(false);
+        }
     };
 
-    const handleCloseModal = () => {
+    const handleCloseModal = async () => {
         setSelectedUser(null);
-        setSelectedRole(null);
+        if (selected === "Role") {
+            await getRoles()
+            setSelectedRole(null);
+        }
     };
 
     const handleCreateRole = async (role) => {
@@ -126,13 +133,29 @@ const Body = () => {
             console.error(error);
         }
         closeCreateModal();
-        window.location.reload();
     };
 
-    const handleSaveRolePerms = async (diff) => {
-        console.log("Permission Changes:", diff);
-        // API call logic to be added
-    };
+    const handleGrantPermission = async (role, perms, tables) => {
+        try {
+            const response = await grantPrivilege(role, perms, tables)
+            console.log(response)
+        } catch(err) {
+            console.error(err);
+        }
+
+        getRoles()
+    }
+
+    const handleRevokePermission = async (role, table, perms) => {
+        try {
+            const response = await revokePrivilege(role, table, perms)
+            console.log(response)
+        } catch (err) {
+            console.error(err)
+        }
+
+        getRoles();
+    }
 
     const handleDeleteRole = async (role) => {
         try {
@@ -141,19 +164,18 @@ const Body = () => {
             console.log(error)
         }
         handleCloseModal();
-        window.location.reload();
-        // Add deletion logic
     };
+
     const handleUpdateRole = async (originalRole, newRoleName) => {
-    try {
-      await updateRole({ originalRole, newRole: newRoleName });
-    } catch (error) {
-      console.error("Update role error:", error);
-    }
-    setUpdateRoleOpen(false);
-    setRoleToUpdate(null);
-    window.location.reload();
-  };
+        try {
+            const response = await updateRole({ originalRole, newRole: newRoleName });
+            console.log(response)
+        } catch (error) {
+            console.error("Update role error:", error);
+        }
+        
+        await getRoles()
+    };
 
     return (
         <div className="flex flex-col gap-4 h-full py-4">
@@ -190,7 +212,7 @@ const Body = () => {
                                 <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Username</th>
                                 <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Role</th>
                                 <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Update</th>
-                                <th className="px-6 py-3 text-right text-sm font-medium text-gray-700">Action</th>
+                                <th className="px-6 py-3 text-right text-sm font-medium text-gray-700">Manage</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -208,12 +230,12 @@ const Body = () => {
                                             Update User
                                         </button>
                                     </td>
-                                    <td className="px-6 py-4 text-sm text-gray-600 flex justify-end">
+                                    <td className="px-6 py-4 text-sm text-gray-600 flex gap-4 justify-end">
                                         <button
                                             className="px-3 py-1 text-sm text-white bg-blue-600 rounded hover:bg-blue-700"
                                             onClick={() => setSelectedUser(user)}
                                         >
-                                            Manage
+                                            Role
                                         </button>
                                     </td>
                                 </tr>
@@ -224,8 +246,8 @@ const Body = () => {
                     <table className="min-w-full bg-white shadow-sm rounded-lg table-auto">
                     <thead className="bg-gray-100">
                         <tr>
-                        <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Role</th>
-                        <th className="px-6 py-3 text-right text-sm font-medium text-gray-700">Actions</th>
+                            <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Role</th>
+                            <th className="px-6 py-3 text-right text-sm font-medium text-gray-700">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -233,12 +255,6 @@ const Body = () => {
                         <tr key={idx} className="border-t border-gray-200 hover:bg-gray-50">
                             <td className="px-6 py-4 text-sm text-gray-600">{role.role}</td>
                             <td className="px-6 py-4 text-sm text-gray-600 text-right space-x-2">
-                            <button
-                                className="px-3 py-1 text-sm text-white bg-blue-600 rounded hover:bg-blue-700"
-                                onClick={() => handleUpdateRoleOpen(role)}
-                            >
-                                Update Role
-                            </button>
                             <button
                                 className="px-3 py-1 text-sm text-white bg-blue-600 rounded hover:bg-blue-700"
                                 onClick={() => handleManageRole(role)}
@@ -254,41 +270,30 @@ const Body = () => {
                 )}
             </div>
 
-            {/* ✅ Modals */}
-            <UserModal
-                user={selectedUser}
-                roles={roles}
-                isOpen={selectedUser && !updateModalOpen}
-                onClose={handleCloseModal}
-                onSaveRoles={handleSaveRoles}
-                onDelete={handleDeleteUser}
-            />
-            <UpdateRoleModal
-                isOpen={updateRoleOpen}
-                role={roleToUpdate}
-                onClose={() => {
-                setUpdateRoleOpen(false);
-                setRoleToUpdate(null);
-                }}
-                onUpdate={handleUpdateRole}
+            <UserModal  user={selectedUser}
+                        roles={roles}
+                        isOpen={selectedUser && !updateModalOpen}
+                        onClose={handleCloseModal}
+                        onSaveRoles={handleSaveRoles}
+                        onDelete={handleDeleteUser}
             />
 
-            <UpdateUserModal
-                isOpen={updateModalOpen}
-                user={selectedUser}
-                onClose={() => {
-                    setUpdateModalOpen(false);
-                    setSelectedUser(null);
-                }}
-                onUpdate={handleUpdate}
+            <UpdateUserModal isOpen={updateModalOpen}
+                             user={selectedUser}
+                             onClose={() => {
+                                setUpdateModalOpen(false);
+                                setSelectedUser(null);
+                             }}
+                             onUpdate={handleUpdate}
             />
 
-            <RoleModal
-                role={selectedRole}
-                isOpened={selectedRole}
-                onClosed={handleCloseModal}
-                onDelete={handleDeleteRole}
-                onSave={handleSaveRolePerms}
+            <RoleModal  role={selectedRole}
+                        isOpened={selectedRole}
+                        onClosed={handleCloseModal}
+                        onGrant={(role, perms, tables) => handleGrantPermission(role, perms, tables)}
+                        onRevoke={(role, table, perms) => handleRevokePermission(role, table, perms)}
+                        onDeleteRole={handleDeleteRole}
+                        onUpdate={handleUpdateRole}
             />
 
             <NewUserModal

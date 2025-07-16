@@ -235,6 +235,7 @@ export const createRole = async (req, res) => {
  */
 export const grantRole = async (req, res) => {
   try {
+    console.log(req.body)
     const { role, permissions, table } = req.body;
 
     if (!role || !permissions || !Array.isArray(permissions)) {
@@ -362,6 +363,7 @@ export const deleteRole = async (req, res) => {
  */
 export const revokeRole = async (req, res) => {
   try {
+    console.log(req.body)
     const { role, permissions, table } = req.body;
 
     if (!role || !permissions || !Array.isArray(permissions)) {
