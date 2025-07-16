@@ -3,7 +3,7 @@ import { useState } from "react";
 const NewRoleModal = ({ isOpened, onClose, onCreateRole }) => {
     const [role, setRole] = useState('');
     const permissions = ["ALTER", "CREATE", "DELETE", "DROP", "INSERT", "SELECT", "UPDATE"]
-    const tables = ["categories", "customers", "developers", "reviews", "softwares", "transactions"]
+    const tables = ["categories", "customers", "developer", "reviews", "software", "transactions"]
     const [ localPerms, setLocalPerms ] = useState([])
     const [ localTables, setLocalTables ] = useState([])
 

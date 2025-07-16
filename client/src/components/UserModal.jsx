@@ -2,9 +2,19 @@ import { useEffect, useState } from "react";
 
 const UserModal = ({ user, roles, isOpen, onClose, onSaveRoles, onDelete }) => {
     const [localRoles, setLocalRoles] = useState([]);
+    const [ selectedTab, setSelectedTab ] = useState("roles");
+    const [localTables, setLocalTables] = useState([]);
+    const [localPerms, setLocalPerms] = useState([]);
 
+    const tabs = ["roles", "privileges"];
+    const permissions = ["ALTER", "CREATE", "DELETE", "DROP", "INSERT", "SELECT", "UPDATE"];
+    const tables = ["categories", "customers", "developer", "reviews", "software", "transactions"];
+    
     useEffect(() => {
-        // If user.roles is array of { role, is_admin_option }
+        if (isOpen) {
+            setLocalTables([]);
+            setLocalPerms([]);
+        }
         setLocalRoles(user?.roles || []);
     }, [user]);
 
@@ -28,6 +38,23 @@ const UserModal = ({ user, roles, isOpen, onClose, onSaveRoles, onDelete }) => {
             prev.map(r =>
                 r.role === roleName ? { ...r, is_admin_option: !r.is_admin_option } : r
             )
+        );
+    };
+
+    const handleTableToggle = (table) => {
+        const isChecked = localTables.includes(table);
+        const updatedTables = isChecked
+            ? localTables.filter(t => t !== table)
+            : [...localTables, table];
+
+        setLocalTables(updatedTables);
+    };
+
+    const handlePermissionToggle = (permission) => {
+        setLocalPerms(prev =>
+            prev.includes(permission)
+                ? prev.filter(p => p !== permission)
+                : [...prev, permission]
         );
     };
 
@@ -67,10 +94,24 @@ const UserModal = ({ user, roles, isOpen, onClose, onSaveRoles, onDelete }) => {
                         readOnly
                     />
                 </h2>
-                <h2 className="mb-2 font-medium">Roles</h2>
+                <div className="flex border-b">
+                    <button className={`${selectedTab === "roles" ? "border-blue-500 text-blue-600 font-medium border-b-2" 
+                                        : "text-gray-600 hover:text-blue-600 "} px-4 py-2 cursor-pointer`}
+                            onClick={() => setSelectedTab("roles")}
+                    >
+                        Roles
+                    </button>
+                    <button className={`${selectedTab === "privileges" ? "border-blue-500 text-blue-600 font-medium border-b-2" 
+                                        : "text-gray-600 hover:text-blue-600 "} px-4 py-2 cursor-pointer`}
+                            onClick={() => setSelectedTab("privileges")}
+                    >
+                        Privileges
+                    </button>
+                </div>
 
-                <div className="space-y-3 mb-6">
-                    {roles.map(({ role }) => {
+                <div className="space-y-3 mb-6 overflow-y-scroll h-80 py-2">
+                    {selectedTab === "roles" ? 
+                    (roles.map(({ role }) => {
                         const isChecked = localRoles.some(r => r.role === role.toUpperCase());
                         const isAdmin = localRoles.find(r => r.role === role.toUpperCase())?.is_admin_option || false;
 
@@ -96,7 +137,37 @@ const UserModal = ({ user, roles, isOpen, onClose, onSaveRoles, onDelete }) => {
                                 )}
                             </div>
                         );
-                    })}
+                    })) 
+                    : (
+                    <div className="w-full flex justify-between pr-4">
+                        <div className="">
+                            <h1 className="my-2 font-semibold">Tables:</h1>
+                            {tables.map(table => (
+                            <label key={table} className="flex items-center gap-2">
+                                <input type="checkbox"
+                                       checked={localTables.includes(table)}
+                                       onChange={() => handleTableToggle(table)}
+                                />
+                                <span>{table}</span>
+                            </label>
+                            ))}
+                        </div>
+                        
+                        <div>
+                            <h1 className="my-2 font-semibold">Permissions:</h1>
+                            {permissions.map(permission => (
+                                <label key={permission} className="flex items-center gap-2">
+                                    <input type="checkbox"
+                                        checked={localPerms.includes(permission)}
+                                        onChange={() => handlePermissionToggle(permission)}
+                                        disabled={localTables.length === 0}
+                                    />
+                                    <span>{permission}</span>
+                                </label>
+                            ))}
+                        </div>
+                    </div>
+                    )}
                 </div>
 
                 <div className="flex justify-between items-center space-x-2 mt-6">
