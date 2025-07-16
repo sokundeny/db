@@ -385,3 +385,187 @@ export const updateUser = async (req, res) => {
   }
 };
 
+/**
+ * @swagger
+ * /api/user/grant:
+ *   post:
+ *     summary: Grant privileges to a user
+ *     tags: [User]
+ *     requestBody:
+ *       description: Privilege details
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *               - privilege
+ *               - table
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 example: johndoe
+ *               privilege:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 example: [ "CREATE", "SELECT" ]
+ *               table:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 example: [ "users", "students" ]
+ *     responses:
+ *       200:
+ *         description: Privileges granted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Privileges granted successfully
+ *       400:
+ *         description: Missing user name or privilege
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: name, table, and privilege array are required
+ */
+
+export const grantPrivilege = async (req, res) => {
+  try {
+    const { name, privilege, table } = req.body;
+
+    if (
+      !name ||
+      !Array.isArray(privilege) || privilege.length === 0 ||
+      !Array.isArray(table) || table.length === 0
+    ) {
+      return res.status(400).json({
+        message: "name, table (array), and privilege (array) are required"
+      });
+    }
+
+    const privilegeList = privilege.map(p => p.toUpperCase()).join(", ");
+    const queries = [];
+
+    for (const t of table) {
+      const sql = `GRANT ${privilegeList} ON sms.\`${t}\` TO '${name}'@'localhost';`;
+      queries.push(pool.query(sql));
+    }
+
+    await Promise.all(queries);
+    await pool.query("FLUSH PRIVILEGES");
+
+    res.status(200).json({
+      message: `Granted [${privilegeList}] on tables [${table.join(", ")}] to user ${name}`
+    });
+
+  } catch (error) {
+    console.error("Error granting privilege:", error);
+    res.status(500).json({
+      message: "Internal server error",
+      error: error.message
+    });
+  }
+};
+
+//revoke grant
+/**
+ * @swagger
+ * /api/user/revoke:
+ *   delete:
+ *     summary: Revoke permissions from a user
+ *     tags: [User]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - user
+ *               - permissions
+ *             properties:
+ *               user:
+ *                 type: string
+ *                 example: kaka
+ *               permissions:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 example: [ "SELECT", "UPDATE" ]
+ *               table:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 example: [ "students" ]
+ *     responses:
+ *       200:
+ *         description: Permissions revoked from user
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: REVOKED [SELECT, UPDATE] on sms.students from user 'kaka'
+ *       400:
+ *         description: Bad request due to missing input
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: User and permissions array are required
+ */
+export const revokeUser = async (req, res) => {
+  try {
+    const { user, permissions, table } = req.body;
+
+    if (!user || !Array.isArray(permissions) || permissions.length === 0) {
+      return res.status(400).json({ message: "User and permissions array are required" });
+    }
+
+    const permissionList = permissions.map(p => p.toUpperCase().trim()).join(", ");
+    const queries = [];
+
+    const userHost = `'${user}'@'localhost'`; // Correct format
+
+    if (Array.isArray(table) && table.length > 0) {
+      for (const t of table) {
+        const sql = `REVOKE ${permissionList} ON sms.\`${t}\` FROM ${userHost};`;
+        queries.push(pool.query(sql));
+      }
+    } else {
+      const sql = `REVOKE ${permissionList} ON sms.* FROM ${userHost};`;
+      queries.push(pool.query(sql));
+    }
+
+    await Promise.all(queries);
+    await pool.query("FLUSH PRIVILEGES");
+
+    res.status(200).json({
+      message: `REVOKED [${permissionList}] on ${Array.isArray(table) && table.length > 0 ? table.map(t => `sms.${t}`).join(", ") : "sms.*"} from user '${user}'`
+    });
+  } catch (error) {
+    console.error("Error revoking privileges:", error);
+    res.status(500).json({
+      message: "Internal server error",
+      error: error.message
+    });
+  }
+};
+
+
+
