@@ -113,6 +113,27 @@ export const revokePrivilege = async (role, tables, permissions) => {
     return response.data
 };
 
+export const grantUserPrivilege = async (user, permissions, tables) => {
+    const response = await axios.post(`${API_BASE_URL}/user/grant`, {
+        user,
+        privilege: permissions,
+        table: tables,
+    });
+
+    return response.data
+};
+
+export const revokeUserPrivilege = async (user, tables, permissions) => {
+    const response = await axios.delete(`${API_BASE_URL}/user/revoke`, {
+        data : {
+            user,
+            permissions,
+            table: tables
+        }
+    });
+    return response.data
+};
+
 export const updateRole = async ({ originalRole, newRole }) => {
     const response = await axios.put(`${API_BASE_URL}/role`, {
         name:originalRole,

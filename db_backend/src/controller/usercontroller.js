@@ -39,6 +39,7 @@ import { pool } from "../configs/connectdb.js"
  *                             type: string
  *                             example: SELECT
  */
+
 export const getAllUser = async (req, res) => {
   try {
     const [users] = await pool.query(`
@@ -55,10 +56,10 @@ export const getAllUser = async (req, res) => {
         const [grants] = await pool.query(`SHOW GRANTS FOR \`${user}\`@\`localhost\``);
 
         const tablePermissionsMap = {};
+        const assignedRoles = [];
 
         for (const grantObj of grants) {
           const grantStr = Object.values(grantObj)[0];
-
           const match = grantStr.match(/GRANT (.+?) ON (`?[\w*]+`?\.`?[\w*]+`?) /i);
           if (match) {
             const permsList = match[1]
@@ -66,8 +67,7 @@ export const getAllUser = async (req, res) => {
               .map(p => p.trim().toUpperCase())
               .filter(p => p.length > 0);
 
-            const tableName = match[2]; // like `sms`.`students`
-
+            const tableName = match[2]; // like sms.students
             if (tableName.startsWith('`sms`.')) {
               if (!tablePermissionsMap[tableName]) {
                 tablePermissionsMap[tableName] = new Set();
@@ -75,20 +75,34 @@ export const getAllUser = async (req, res) => {
               permsList.forEach(p => tablePermissionsMap[tableName].add(p));
             }
           }
+          const roleMatch = grantStr.match(/GRANT\s+((?:`[^`]+`@\`[^`]+\`,?\s*)+)TO/i);
+          if (roleMatch) {
+            const rolesPart = roleMatch[1];
+            const isAdmin = /WITH ADMIN OPTION/i.test(grantStr);
+            const roleEntries = rolesPart.split(',').map(r => r.trim());
+
+            for (const roleEntry of roleEntries) {
+              const roleNameMatch = roleEntry.match(/`([^`]+)`@\`[^`]+\`/);
+              if (roleNameMatch) {
+                assignedRoles.push({
+                  role: roleNameMatch[1],
+                  is_admin_option: isAdmin
+                });
+              }
+            }
+          }
         }
 
-        if (Object.keys(tablePermissionsMap).length === 0) {
-          continue; // Skip users with no `sms` table privileges
-        }
-
+        
         const tables = Object.entries(tablePermissionsMap).map(([table, permsSet]) => ({
           table,
-          permissions: [...permsSet]
+          permissions: [...permsSet]  
         }));
 
         results.push({
           user,
-          tables
+          tables,
+          roles: assignedRoles
         });
 
       } catch {
@@ -103,7 +117,6 @@ export const getAllUser = async (req, res) => {
     res.status(500).json({ message: "Internal server error" });
   }
 };
-
 
 
 /**
@@ -449,23 +462,13 @@ export const updateUser = async (req, res) => {
 
 export const grantPrivilege = async (req, res) => {
   try {
-    const { name, privilege, table } = req.body;
-
-    if (
-      !name ||
-      !Array.isArray(privilege) || privilege.length === 0 ||
-      !Array.isArray(table) || table.length === 0
-    ) {
-      return res.status(400).json({
-        message: "name, table (array), and privilege (array) are required"
-      });
-    }
+    const { user, privilege, table } = req.body;
 
     const privilegeList = privilege.map(p => p.toUpperCase()).join(", ");
     const queries = [];
 
     for (const t of table) {
-      const sql = `GRANT ${privilegeList} ON sms.\`${t}\` TO '${name}'@'localhost';`;
+      const sql = `GRANT ${privilegeList} ON sms.\`${t}\` TO '${user}'@'localhost';`;
       queries.push(pool.query(sql));
     }
 
@@ -473,7 +476,7 @@ export const grantPrivilege = async (req, res) => {
     await pool.query("FLUSH PRIVILEGES");
 
     res.status(200).json({
-      message: `Granted [${privilegeList}] on tables [${table.join(", ")}] to user ${name}`
+      message: `Granted [${privilegeList}] on tables [${table.join(", ")}] to user ${user}`
     });
 
   } catch (error) {
@@ -539,6 +542,7 @@ export const grantPrivilege = async (req, res) => {
  */
 export const revokeUser = async (req, res) => {
   try {
+    console.log(req.body)
     const { user, permissions, table } = req.body;
 
     if (!user || !Array.isArray(permissions) || permissions.length === 0) {

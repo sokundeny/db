@@ -1,4 +1,19 @@
-import { pingUser, getUser, createUser, removeUser, assignRole, removeRole, getRole, createRole, updateUser, deleteRole ,updateRole, grantPrivilege, revokePrivilege} from "../api";
+import { 
+    getUser, 
+    createUser, 
+    removeUser, 
+    assignRole, 
+    removeRole, 
+    getRole, 
+    createRole, 
+    updateUser, 
+    deleteRole,
+    updateRole, 
+    grantPrivilege, 
+    revokePrivilege,
+    grantUserPrivilege,
+    revokeUserPrivilege
+} from "../api";
 import { useEffect, useState } from "react";
 import UserModal from "./UserModal";
 import RoleModal from "./RoleModal";
@@ -23,6 +38,7 @@ const Body = () => {
     const getUsers = async () => {
         try {
             const user = await getUser();
+            console.log(user)
             setUsers(user);
         } catch (error) {
             console.error(error);
@@ -51,11 +67,6 @@ const Body = () => {
         }
         closeCreateModal();
         window.location.reload();
-    };
-
-    const handleUpdateRoleOpen = (role) => {
-        setRoleToUpdate(role);
-        setUpdateRoleOpen(true);
     };
 
     const handleDeleteUser = async (user) => {
@@ -157,6 +168,28 @@ const Body = () => {
         getRoles();
     }
 
+    const handleGrantUserPermission = async (name, perms, table) => {
+        try {
+            const response = await grantUserPrivilege(name, perms, table)
+            console.log(response)
+        } catch(err) {
+            console.error(err);
+        }
+
+        getUsers();
+    }
+
+    const handleRevokeUserPermission = async (name, perms, table) => {
+        try {
+            const response = await revokeUserPrivilege(name, table, perms)
+            console.log(response)
+        } catch (err) {
+            console.error(err)
+        }
+
+        getUsers();
+    }
+
     const handleDeleteRole = async (role) => {
         try {
             await deleteRole(role.role)
@@ -231,9 +264,8 @@ const Body = () => {
                                         </button>
                                     </td>
                                     <td className="px-6 py-4 text-sm text-gray-600 flex gap-4 justify-end">
-                                        <button
-                                            className="px-3 py-1 text-sm text-white bg-blue-600 rounded hover:bg-blue-700"
-                                            onClick={() => setSelectedUser(user)}
+                                        <button className="px-3 py-1 text-sm text-white bg-blue-600 rounded hover:bg-blue-700"
+                                                onClick={() => setSelectedUser(user)}
                                         >
                                             Role
                                         </button>
@@ -275,6 +307,8 @@ const Body = () => {
                         isOpen={selectedUser && !updateModalOpen}
                         onClose={handleCloseModal}
                         onSaveRoles={handleSaveRoles}
+                        onGrant={(name, perms, tables)=> handleGrantUserPermission(name, perms, tables)}
+                        onRevoke={(name, perms, tables)=> handleRevokeUserPermission(name, perms, tables)}
                         onDelete={handleDeleteUser}
             />
 
